@@ -1,0 +1,228 @@
+{
+    "name": "WhatsApp QA Bot (Free Mode)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "whatsapp-webhook",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "WhatsApp Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_SHEET_ID",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "Sheet1",
+                    "mode": "id"
+                },
+                "filters": {
+                    "conditions": [
+                        {
+                            "key": "Question",
+                            "value": "={{$json.body.payload.body}}",
+                            "operator": "like"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "google-sheets-lookup",
+            "name": "Check Exact Answer",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 3,
+            "position": [
+                300,
+                300
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_SHEET_CREDENTIAL_ID",
+                    "name": "Google Sheets Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{$json.Answer}}",
+                            "operation": "notEqual",
+                            "value2": ""
+                        }
+                    ]
+                }
+            },
+            "id": "check-found",
+            "name": "Found Answer?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "modelId": "llama3-70b-8192",
+                "messages": {
+                    "values": [
+                        {
+                            "role": "system",
+                            "content": "You are a helpful assistant. You have access to a Q&A database but didn't find an exact match. Try to answer the user's question politely based on general knowledge, or ask them to rephrase. Keep it short (under 50 words)."
+                        },
+                        {
+                            "role": "user",
+                            "content": "={{$node[\"WhatsApp Webhook\"].json.body.payload.body}}"
+                        }
+                    ]
+                }
+            },
+            "id": "ai-fallback",
+            "name": "AI Fallback (Groq)",
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1,
+            "position": [
+                500,
+                500
+            ],
+            "credentials": {
+                "groqApi": {
+                    "id": "YOUR_GROQ_CREDENTIAL_ID",
+                    "name": "Groq Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://waha:3000/api/sendText",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "chatId",
+                            "value": "={{$node[\"WhatsApp Webhook\"].json.body.payload.from}}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{$json.Answer}}"
+                        },
+                        {
+                            "name": "session",
+                            "value": "default"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "reply-whatsapp",
+            "name": "Reply (Found)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://waha:3000/api/sendText",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "chatId",
+                            "value": "={{$node[\"WhatsApp Webhook\"].json.body.payload.from}}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{$json.response_message}}"
+                        },
+                        {
+                            "name": "session",
+                            "value": "default"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "reply-ai",
+            "name": "Reply (AI)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                700,
+                500
+            ]
+        }
+    ],
+    "connections": {
+        "WhatsApp Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Check Exact Answer",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Exact Answer": {
+            "main": [
+                [
+                    {
+                        "node": "Found Answer?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Found Answer?": {
+            "main": [
+                [
+                    {
+                        "node": "Reply (Found)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "AI Fallback (Groq)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Fallback (Groq)": {
+            "main": [
+                [
+                    {
+                        "node": "Reply (AI)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
