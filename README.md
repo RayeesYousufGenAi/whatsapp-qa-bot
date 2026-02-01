@@ -28,17 +28,17 @@ This bot is designed to handle **high volumes of pending messages** (2000+). It 
 ```mermaid
 graph TD
     A[Incoming WhatsApp Message] --> B{Is it a new message?}
-    B -->|Yes| C[Search Google Sheet]
+    B -->|Yes| C["Search Google Sheet"]
     
     C --> D{Answer Found?}
-    D -->|Exact Match| E[Send Sheet Answer]
-    D -->|No Match| F[Ask AI (Groq Llama 3)]
+    D -->|Exact Match| E["Send Sheet Answer"]
+    D -->|No Match| F["Ask AI (Groq Llama 3)"]
     
     F --> G{Confidence > 80%?}
     G -->|Yes| E
-    G -->|No| H[Save to 'Unanswered' Log]
+    G -->|No| H["Save to 'Unanswered' Log"]
     
-    E --> I[WhatsApp Reply]
+    E --> I["WhatsApp Reply"]
 ```
 
 ---
@@ -50,6 +50,43 @@ graph TD
 - **✅ Smart Matching**: Doesn't need exact phrasing. AI understands similar questions.
 - **✅ Safety First**: Logs unmatched questions for you to review (so it doesn't hallucinate).
 - **✅ Batch Processing**: Can handle bulk replies without getting banned (rate limits included).
+
+---
+
+## 🎯 Use Cases
+
+### 1. Personal Brand Management
+- **Problem**: 2,000+ unread DMs asking "What services do you offer?"
+- **Solution**: Bot replies instantly with your service portfolio from the Sheet.
+
+### 2. E-commerce Support
+- **Problem**: Repetitive questions like "Where is my order?" or "Refund policy?"
+- **Solution**: Bot directs them to the order tracking page or sends the policy text.
+
+### 3. Event Management
+- **Problem**: Guests asking same questions about venue, time, and parking.
+- **Solution**: Bot automates replies so you can focus on the event.
+
+---
+
+## 🪜 Workflow Steps
+
+1.  **Trigger**: `WAHA` detects a new incoming message.
+2.  **Lookup**: Workflow searches column A of your Google Sheet.
+3.  **Match**: 
+    - **Exact**: If found, it pulls the answer from column B.
+    - **Fuzzy (AI)**: If not found, `Groq` (Llama 3) analyzes the Sheet's content to generate a relevant answer.
+4.  **Reply**: The answer is sent back via WhatsApp.
+5.  **Fallback**: If AI is unsure, it logs the question to a "To Review" sheet for you.
+
+---
+
+## 📈 Automation Benefits
+
+-   **⏱️ Zero Backlog**: Clears 2,000+ messages in hours, not days.
+-   **💰 100% Free**: No recurring costs for AI or WhatsApp API.
+-   **🧠 Smarter Over Time**: Add new Q&A pairs to your sheet to make the bot smarter instantly.
+-   **🔒 Data Privacy**: Messages stay on your local server/Docker interaction, not a 3rd party SaaS.
 
 ---
 
